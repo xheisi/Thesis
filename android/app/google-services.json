@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "37440482669",
+    "project_id": "urbane-app",
+    "storage_bucket": "urbane-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:37440482669:android:e3de1279d281ea839cfe64",
+        "android_client_info": {
+          "package_name": "com.example.urbane_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiDEE8HNGvEs_xxrneBGwQMqMM88hdHqA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

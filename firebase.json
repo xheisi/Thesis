@@ -1,0 +1,41 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "urbane-app",
+          "appId": "1:37440482669:android:e3de1279d281ea839cfe64",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "urbane-app",
+          "configurations": {
+            "android": "1:37440482669:android:e3de1279d281ea839cfe64",
+            "ios": "1:37440482669:ios:c6264064623462c09cfe64",
+            "web": "1:37440482669:web:cdb7960e41b615fe9cfe64"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+  
+}
