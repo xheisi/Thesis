@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'main.dart';
 import 'services/auth_service.dart';
 import 'change_password_screen.dart';
+import 'services/notification_service.dart';
 import 'chatbot_widget.dart';
 
 // ═══════════════════════════════════════════════════════
@@ -370,12 +372,17 @@ class _KpiRow extends StatelessWidget {
                     if (wide) {
                       return Row(children: cards.map((c) => Expanded(child: Padding(padding: const EdgeInsets.only(right: 12), child: _KpiCard(data: c)))).toList());
                     }
-                    return GridView.builder(
-                      shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.5),
-                      itemCount: cards.length,
-                      itemBuilder: (_, i) => _KpiCard(data: cards[i]),
-                    );
+                    // Mobile: 2 columns using rows, no fixed height grid
+                    final rows = <Widget>[];
+                    for (int i = 0; i < cards.length; i += 2) {
+                      rows.add(Row(children: [
+                        Expanded(child: _KpiCard(data: cards[i])),
+                        const SizedBox(width: 10),
+                        i + 1 < cards.length ? Expanded(child: _KpiCard(data: cards[i + 1])) : const Expanded(child: SizedBox()),
+                      ]));
+                      if (i + 2 < cards.length) rows.add(const SizedBox(height: 10));
+                    }
+                    return Column(children: rows);
                   },
                 );
               },
@@ -410,7 +417,7 @@ class _KpiCard extends StatelessWidget {
           Icon(Icons.trending_up_rounded, color: _kGreen.withOpacity(0.7), size: 16),
         ]),
         const SizedBox(height: 14),
-        Text(data.value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _kDark)),
+        Text(data.value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _kDark), overflow: TextOverflow.ellipsis, maxLines: 1),
         const SizedBox(height: 2),
         Text(data.label, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 4),
@@ -1050,7 +1057,7 @@ class _VerificationTab extends StatelessWidget {
           const SizedBox(height: 20),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('abonements').where('status', isEqualTo: 'pending_verification').orderBy('created_at', descending: true).snapshots(),
+              stream: FirebaseFirestore.instance.collection('abonements').where('status', isEqualTo: 'pending_verification').snapshots(),
               builder: (_, snap) {
                 final docs = snap.data?.docs ?? [];
                 if (docs.isEmpty) return const _EmptyState(emoji: '✅', label: 'Nuk ka aplikime në pritje');

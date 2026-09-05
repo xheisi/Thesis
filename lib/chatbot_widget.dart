@@ -3,25 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 
-// ═══════════════════════════════════════════════════════
-//  HOW TO USE:
-//
-//  Passenger home — add to your Scaffold's body Stack OR
-//  just call ChatbotFloatingButton() inside a Stack.
-//
-//  The easiest way — wrap Scaffold body:
-//
-//  body: Stack(children: [
-//    YourContent(),
-//    ChatbotFloatingButton(isAdmin: false),
-//  ]),
-//
-//  For admin web (inside the content area, not full screen):
-//  body: Stack(children: [
-//    YourContent(),
-//    ChatbotFloatingButton(isAdmin: true),
-//  ]),
-// ═══════════════════════════════════════════════════════
 
 class ChatbotFloatingButton extends StatefulWidget {
   final bool isAdmin;
@@ -123,7 +104,9 @@ class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with Tick
                   child: Center(
                     child: _isOpen
                         ? const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 26)
-                        : const Text('🤖', style: TextStyle(fontSize: 24)),
+                        : ClipOval(child: Image.asset('assets/images/ubi_avatar.png',
+                            width: 40, height: 40, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Text('🤖', style: TextStyle(fontSize: 24)))),
                   ),
                 ),
               ),
@@ -154,8 +137,8 @@ class _ChatWindowState extends State<_ChatWindow> {
   final List<_Msg> _msgs = [];
   bool _loading = false;
 
-  // ✅ Replace with your Groq API key from console.groq.com
-  static const _groqKey = '';
+  static const apiKey = "YOUR_GROQ_API_KEY";
+
   @override
   void initState() {
     super.initState();
@@ -295,20 +278,26 @@ class _ChatWindowState extends State<_ChatWindow> {
         Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $_groqKey'},
         body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
+          'model': 'openai/gpt-oss-20b',
           'max_tokens': 350,
           'temperature': 0.5,
           'messages': [{'role': 'system', 'content': sys}, ...history, {'role': 'user', 'content': text.trim()}],
         }),
       );
 
-      final reply = res.statusCode == 200
-          ? (jsonDecode(utf8.decode(res.bodyBytes))['choices'][0]['message']['content'] as String).trim()
-          : 'Më falni, pati një gabim teknik. Provoni përsëri.';
+      String reply;
+      if (res.statusCode == 200) {
+        reply = (jsonDecode(utf8.decode(res.bodyBytes))['choices'][0]['message']['content'] as String).trim();
+      } else {
+        final errorBody = utf8.decode(res.bodyBytes);
+        debugPrint('Groq error ${res.statusCode}: $errorBody');
+        reply = 'Groq error ${res.statusCode}: $errorBody';
+      }
 
       setState(() { _msgs.add(_Msg(text: reply, isBot: true, time: DateTime.now())); _loading = false; });
-    } catch (_) {
-      setState(() { _msgs.add(_Msg(text: 'Më falni, nuk mund të lidhem. Kontrolloni internetin.', isBot: true, time: DateTime.now())); _loading = false; });
+    } catch (e) {
+      debugPrint('UBI catch error: $e');
+      setState(() { _msgs.add(_Msg(text: 'Error: ${e.toString()}', isBot: true, time: DateTime.now())); _loading = false; });
     }
     _scrollDown();
   }
@@ -321,7 +310,10 @@ class _ChatWindowState extends State<_ChatWindow> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF3A7DFF), Color(0xFF1A3AFF)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
         child: Row(children: [
-          Container(width: 38, height: 38, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Center(child: Text('🤖', style: TextStyle(fontSize: 19)))),
+          Container(width: 38, height: 38, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: ClipOval(child: Image.asset('assets/images/ubi_avatar.png',
+                width: 38, height: 38, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Center(child: Text('🤖', style: TextStyle(fontSize: 19)))))),
           const SizedBox(width: 10),
           const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('UBI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
@@ -408,7 +400,11 @@ class _Bubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: msg.isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
         children: [
-          if (msg.isBot) Container(width: 28, height: 28, margin: const EdgeInsets.only(right: 7), decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF3A7DFF)), child: const Center(child: Text('🤖', style: TextStyle(fontSize: 13)))),
+          if (msg.isBot) Container(width: 28, height: 28, margin: const EdgeInsets.only(right: 7),
+          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+          child: ClipOval(child: Image.asset('assets/images/ubi_avatar.png',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const Center(child: Text('🤖', style: TextStyle(fontSize: 13)))))),
           Flexible(child: Column(
             crossAxisAlignment: msg.isBot ? CrossAxisAlignment.start : CrossAxisAlignment.end,
             children: [
@@ -441,7 +437,11 @@ class _DotsState extends State<_Dots> with SingleTickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(children: [
-        Container(width: 28, height: 28, margin: const EdgeInsets.only(right: 7), decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF3A7DFF)), child: const Center(child: Text('🤖', style: TextStyle(fontSize: 13)))),
+        Container(width: 28, height: 28, margin: const EdgeInsets.only(right: 7),
+          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+          child: ClipOval(child: Image.asset('assets/images/ubi_avatar.png',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const Center(child: Text('🤖', style: TextStyle(fontSize: 13)))))),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]),

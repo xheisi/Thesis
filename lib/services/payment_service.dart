@@ -1,8 +1,11 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+// Only import Stripe on non-web
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 class PaymentService {
   static Future<bool> processPayment({
@@ -10,6 +13,18 @@ class PaymentService {
     required int amount,
     required String description,
   }) async {
+    // ✅ Stripe doesn't work on web — show message and return false
+    if (kIsWeb) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Pagesat janë të disponueshme vetëm në aplikacion. / Payments are only available in the mobile app.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 4),
+        ));
+      }
+      return false;
+    }
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
@@ -17,14 +32,9 @@ class PaymentService {
       await user.getIdToken(true);
 
       final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
-          .httpsCallable('createPaymentIntent',
-              options: HttpsCallableOptions(timeout: const Duration(seconds: 30)));
+          .httpsCallable('createPaymentIntent', options: HttpsCallableOptions(timeout: const Duration(seconds: 30)));
 
-      final result = await callable.call({
-        'amount': amount,
-        'currency': 'eur',
-        'description': description,
-      });
+      final result = await callable.call({'amount': amount, 'currency': 'eur', 'description': description});
 
       final data = Map<String, dynamic>.from(result.data as Map);
       final clientSecret = data['clientSecret'] as String?;
@@ -34,20 +44,15 @@ class PaymentService {
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
           merchantDisplayName: 'Urbane',
-          billingDetailsCollectionConfiguration: const BillingDetailsCollectionConfiguration(
-            address: AddressCollectionMode.never,
-          ),
+          billingDetailsCollectionConfiguration: const BillingDetailsCollectionConfiguration(address: AddressCollectionMode.never),
           style: ThemeMode.light,
-          appearance: const PaymentSheetAppearance(
-            colors: PaymentSheetAppearanceColors(primary: Color(0xFF3A7DFF)),
-          ),
+          appearance: const PaymentSheetAppearance(colors: PaymentSheetAppearanceColors(primary: Color(0xFF3A7DFF))),
         ),
       );
 
       await Stripe.instance.presentPaymentSheet();
 
       // Only update abone status for elderly post-approval payments
-      // (general abone and ticket payments don't need this)
       if (description.contains('abone') || description.contains('Abone')) {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null) {
@@ -73,13 +78,31 @@ class PaymentService {
       return true;
     } on StripeException catch (e) {
       if (e.error.code == FailureCode.Canceled) return false;
-      debugPrint('Stripe error: ${e.error.code} - ${e.error.message}');
+      debugPrint('Stripe error: \${e.error.code} - \${e.error.message}');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Stripe: \${e.error.message ?? e.error.code.toString()}'),
+          backgroundColor: Colors.red, duration: const Duration(seconds: 6),
+        ));
+      }
       return false;
     } on FirebaseFunctionsException catch (e) {
-      debugPrint('Firebase Functions error: ${e.code} - ${e.message}');
+      debugPrint('Firebase Functions error: \${e.code} - \${e.message}');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Functions error: \${e.code} — \${e.message}'),
+          backgroundColor: Colors.red, duration: const Duration(seconds: 8),
+        ));
+      }
       return false;
     } catch (e) {
-      debugPrint('Payment error: $e');
+      debugPrint('Payment error: \$e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: \${e.toString()}'),
+          backgroundColor: Colors.red, duration: const Duration(seconds: 8),
+        ));
+      }
       return false;
     }
   }

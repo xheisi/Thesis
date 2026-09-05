@@ -3,8 +3,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
+const stripe = require("stripe")("YOUR_STRIPE_SECRET_KEY");
 admin.initializeApp();
 
 const GMAIL_USER = "YOUR_GMAIL@gmail.com";
